@@ -1,7 +1,7 @@
 local M = {}
 
 M.get_phpunit_cmd = function()
-  return "vendor/bin/phpunit"
+  return "vendor/bin/pest"
 end
 
 M.get_env = function()
