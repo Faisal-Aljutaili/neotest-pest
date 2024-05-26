@@ -5,17 +5,14 @@ local separator = "::"
 
 ---Generate an id which we can use to match Treesitter queries and Pest tests
 ---@param position neotest.Position The position to return an ID for
+---@param namespace neotest.Position[] Any namespaces the position is within
 ---@return string
 M.make_test_id = function(position)
-    -- Treesitter ID needs to look like 'tests/Unit/ColsHelperTest.php::it returns the proper format'
-    -- which means it should include position.path. However, as of PHPUnit 10, position.path
-    -- includes the root directory of the project, which breaks the ID matching.
-    -- As such, we need to remove the root directory from the path.
-    local path = string.sub(position.path, string.len(vim.loop.cwd()) + 2)
+    -- Treesitter starts line numbers from 0 so we add 1
+    local id = position.path .. separator .. position.name
 
-    local id = path .. separator .. position.name
-    logger.debug("Path to test file:", { position.path })
-    logger.debug("Treesitter id:", { id })
+    logger.info("Path to test file:", { position.path })
+    logger.info("Treesitter id:", { id })
 
     return id
 end
@@ -62,16 +59,14 @@ end
 ---Make the outputs for a given test
 ---@param test table
 ---@param output_file string
----@return string, table
+---@return table
 local function make_outputs(test, output_file)
-    logger.debug("Pre-output test:", test)
+    logger.info("Pre-output test:", test)
     local test_attr = test["_attr"] or test[1]["_attr"]
-    local name = string.gsub(test_attr.name, "^it (.*)", "%1")
+    local name = string.gsub(test_attr.name, "it (.*)", "%1")
 
-    -- Difference to neotest-phpunit as of PHPUnit 10:
-    -- Pest's test IDs are in the format "path/to/test/file::test name"
-    local test_id = string.gsub(test_attr.file, "(.*)::(.*)", "%1") .. separator .. name
-    logger.debug("Pest id:", { test_id })
+    local test_id = test_attr.file .. separator .. name
+    logger.info("Pest id:", { test_id })
 
     local test_output = {
         status = "passed",
@@ -82,7 +77,7 @@ local function make_outputs(test, output_file)
     local test_failed, errors, fails = errors_or_fails(test)
 
     if test_failed then
-        logger.debug("test_failed:", { test_failed, errors, fails })
+        logger.info("test_failed:", { test_failed, errors, fails })
         test_output.status = "failed"
 
         if #errors > 0 then
